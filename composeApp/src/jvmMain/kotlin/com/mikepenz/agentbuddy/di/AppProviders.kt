@@ -6,7 +6,9 @@ import com.mikepenz.agentbuddy.capability.modules.SocraticThinkingCapability
 import com.mikepenz.agentbuddy.hook.CopilotBridge
 import com.mikepenz.agentbuddy.hook.DefaultCopilotBridge
 import com.mikepenz.agentbuddy.hook.DefaultHookRegistry
+import com.mikepenz.agentbuddy.hook.DefaultOpenCodeBridge
 import com.mikepenz.agentbuddy.hook.HookRegistry
+import com.mikepenz.agentbuddy.hook.OpenCodeBridge
 import com.mikepenz.agentbuddy.protection.ProtectionEngine
 import com.mikepenz.agentbuddy.protection.modules.AbsolutePathsModule
 import com.mikepenz.agentbuddy.protection.modules.DestructiveCommandsModule
@@ -107,6 +109,10 @@ interface AppProviders {
     @Provides
     @SingleIn(AppScope::class)
     fun provideCopilotBridge(): CopilotBridge = DefaultCopilotBridge
+
+    @Provides
+    @SingleIn(AppScope::class)
+    fun provideOpenCodeBridge(): OpenCodeBridge = DefaultOpenCodeBridge
 
     @Provides
     @SingleIn(AppScope::class)

@@ -7,6 +7,7 @@ import com.mikepenz.agentbuddy.di.AppEnvironment
 import com.mikepenz.agentbuddy.di.AppScope
 import com.mikepenz.agentbuddy.hook.CopilotBridge
 import com.mikepenz.agentbuddy.hook.HookRegistry
+import com.mikepenz.agentbuddy.hook.OpenCodeBridge
 import com.mikepenz.agentbuddy.hook.RegistrationEvents
 import com.mikepenz.agentbuddy.state.AppNotice
 import com.mikepenz.agentbuddy.state.AppStateManager
@@ -40,6 +41,7 @@ class AppViewModel(
     env: AppEnvironment,
     private val hookRegistry: HookRegistry,
     private val copilotBridge: CopilotBridge,
+    private val openCodeBridge: OpenCodeBridge,
     private val registrationEvents: RegistrationEvents,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
@@ -50,12 +52,14 @@ class AppViewModel(
     /** Re-polled whenever the configured `serverPort` changes. */
     private val claudeRegistered = MutableStateFlow(false)
     private val copilotRegistered = MutableStateFlow(false)
+    private val openCodeRegistered = MutableStateFlow(false)
 
     val tabState: StateFlow<TabState> = combine(
         stateManager.state,
         claudeRegistered,
         copilotRegistered,
-    ) { state, claude, copilot ->
+        openCodeRegistered,
+    ) { state, claude, copilot, openCode ->
         TabState(
             pendingCount = state.pendingApprovals.size,
             protectionLogCount = state.preToolUseLog.size,
@@ -66,6 +70,7 @@ class AppViewModel(
             agentRegistrations = listOf(
                 AgentRegistration("Claude Code", claude),
                 AgentRegistration("GitHub Copilot", copilot),
+                AgentRegistration("OpenCode", openCode),
             ),
         )
     }.stateIn(
@@ -91,11 +96,16 @@ class AppViewModel(
                 .map { it.settings.serverPort }
                 .distinctUntilChanged()
                 .collect { port ->
-                    val (c, cp) = withContext(ioDispatcher) {
-                        hookRegistry.isRegistered(port) to copilotBridge.isRegistered(port)
+                    val (c, cp, oc) = withContext(ioDispatcher) {
+                        Triple(
+                            hookRegistry.isRegistered(port),
+                            copilotBridge.isRegistered(port),
+                            openCodeBridge.isRegistered(port),
+                        )
                     }
                     claudeRegistered.value = c
                     copilotRegistered.value = cp
+                    openCodeRegistered.value = oc
                 }
         }
         // Re-poll when SettingsViewModel registers or unregisters a hook so
@@ -103,11 +113,16 @@ class AppViewModel(
         viewModelScope.launch {
             registrationEvents.changes.collect {
                 val port = stateManager.state.value.settings.serverPort
-                val (c, cp) = withContext(ioDispatcher) {
-                    hookRegistry.isRegistered(port) to copilotBridge.isRegistered(port)
+                val (c, cp, oc) = withContext(ioDispatcher) {
+                    Triple(
+                        hookRegistry.isRegistered(port),
+                        copilotBridge.isRegistered(port),
+                        openCodeBridge.isRegistered(port),
+                    )
                 }
                 claudeRegistered.value = c
                 copilotRegistered.value = cp
+                openCodeRegistered.value = oc
             }
         }
     }

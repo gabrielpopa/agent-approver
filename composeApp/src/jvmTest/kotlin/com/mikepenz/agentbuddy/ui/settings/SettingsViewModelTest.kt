@@ -5,6 +5,7 @@ import com.mikepenz.agentbuddy.capability.modules.ResponseCompressionCapability
 import com.mikepenz.agentbuddy.capability.modules.SocraticThinkingCapability
 import com.mikepenz.agentbuddy.hook.CopilotBridge
 import com.mikepenz.agentbuddy.hook.HookRegistry
+import com.mikepenz.agentbuddy.hook.OpenCodeBridge
 import com.mikepenz.agentbuddy.hook.RegistrationEvents
 import com.mikepenz.agentbuddy.model.CapabilityModuleSettings
 import com.mikepenz.agentbuddy.model.CapabilitySettings
@@ -108,6 +109,18 @@ class SettingsViewModelTest {
         override fun unregisterSessionStartHook(port: Int) { sessionStartHookPorts.remove(port) }
     }
 
+    private class FakeOpenCodeBridge : OpenCodeBridge {
+        val registeredPorts: MutableSet<Int> = mutableSetOf()
+        override fun isRegistered(port: Int): Boolean = port in registeredPorts
+        override fun register(port: Int) { registeredPorts.add(port) }
+        override fun unregister(port: Int) { registeredPorts.remove(port) }
+
+        val capabilityHookPorts: MutableSet<Int> = mutableSetOf()
+        override fun isCapabilityHookRegistered(port: Int): Boolean = port in capabilityHookPorts
+        override fun registerCapabilityHook(port: Int) { capabilityHookPorts.add(port) }
+        override fun unregisterCapabilityHook(port: Int) { capabilityHookPorts.remove(port) }
+    }
+
     private fun newVm(
         bridge: FakeCopilotBridge = FakeCopilotBridge(),
         registry: FakeHookRegistry = FakeHookRegistry(),
@@ -131,6 +144,7 @@ class SettingsViewModelTest {
         val vm = SettingsViewModel(
             stateManager = state,
             copilotBridge = bridge,
+            openCodeBridge = FakeOpenCodeBridge(),
             copilotStateHolder = copilotState,
             ollamaStateHolder = ollamaState,
             riskAnalyzerLifecycle = lifecycle,
